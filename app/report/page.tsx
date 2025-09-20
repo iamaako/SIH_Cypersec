@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,6 +29,7 @@ import {
   FileType,
 } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface FormData {
   fullName: string
@@ -42,6 +44,8 @@ export default function ReportPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const { user, loading } = useAuth()
+  const router = useRouter()
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -50,6 +54,33 @@ export default function ReportPage() {
     description: "",
     files: [],
   })
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth')
+    } else if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.name,
+        email: user.email
+      }))
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   const steps = [
     {

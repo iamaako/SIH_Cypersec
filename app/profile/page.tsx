@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -23,17 +24,7 @@ import {
   Lock,
 } from "lucide-react"
 import Link from "next/link"
-
-// Mock user data
-const userData = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-  joinDate: "March 2024",
-  totalAnalyses: 47,
-  scamsDetected: 12,
-  safeMails: 35,
-  streak: 15,
-}
+import { useAuth } from "@/contexts/AuthContext"
 
 // Mock analysis history
 const analysisHistory = [
@@ -81,8 +72,34 @@ const analysisHistory = [
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
-  const [editedName, setEditedName] = useState(userData.name)
-  const [editedEmail, setEditedEmail] = useState(userData.email)
+  const { user, loading } = useAuth()
+  const router = useRouter()
+  const [editedName, setEditedName] = useState("")
+  const [editedEmail, setEditedEmail] = useState("")
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth')
+    } else if (user) {
+      setEditedName(user.name)
+      setEditedEmail(user.email)
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   const handleSave = () => {
     // Mock save functionality
@@ -92,8 +109,15 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setIsEditing(false)
-    setEditedName(userData.name)
-    setEditedEmail(userData.email)
+    setEditedName(user.name)
+    setEditedEmail(user.email)
+  }
+
+  const formatJoinDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long' 
+    })
   }
 
   const getResultIcon = (result: string) => {
@@ -151,7 +175,9 @@ export default function ProfilePage() {
               <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 <Avatar className="h-24 w-24">
                   <AvatarImage src="/diverse-user-avatars.png" />
-                  <AvatarFallback className="text-2xl">JD</AvatarFallback>
+                  <AvatarFallback className="text-2xl">
+                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 space-y-4">
@@ -186,16 +212,16 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold">{userData.name}</h1>
+                        <h1 className="text-3xl font-bold">{user.name}</h1>
                         <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
                         </Button>
                       </div>
-                      <p className="text-muted-foreground text-lg">{userData.email}</p>
+                      <p className="text-muted-foreground text-lg">{user.email}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span>Joined {userData.joinDate}</span>
+                        <span>Joined {formatJoinDate(user.joinDate)}</span>
                       </div>
                     </div>
                   )}
@@ -203,9 +229,11 @@ export default function ProfilePage() {
 
                 <div className="flex flex-col gap-2">
                   <Badge variant="outline" className="text-center">
-                    {userData.streak} day streak
+                    {user.streak} day streak
                   </Badge>
-                  <Badge className="bg-primary text-primary-foreground text-center">Pro User</Badge>
+                  <Badge className="bg-primary text-primary-foreground text-center">
+                    {user.isVerified ? "Verified User" : "New User"}
+                  </Badge>
                 </div>
               </div>
             </CardContent>
@@ -217,7 +245,7 @@ export default function ProfilePage() {
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <TrendingUp className="h-8 w-8 text-primary mx-auto" />
-                  <div className="text-2xl font-bold">{userData.totalAnalyses}</div>
+                  <div className="text-2xl font-bold">{user.totalAnalyses}</div>
                   <div className="text-sm text-muted-foreground">Total Analyses</div>
                 </div>
               </CardContent>
@@ -227,7 +255,7 @@ export default function ProfilePage() {
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <XCircle className="h-8 w-8 text-destructive mx-auto" />
-                  <div className="text-2xl font-bold">{userData.scamsDetected}</div>
+                  <div className="text-2xl font-bold">{user.scamsDetected}</div>
                   <div className="text-sm text-muted-foreground">Scams Detected</div>
                 </div>
               </CardContent>
@@ -237,7 +265,7 @@ export default function ProfilePage() {
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <CheckCircle className="h-8 w-8 text-accent mx-auto" />
-                  <div className="text-2xl font-bold">{userData.safeMails}</div>
+                  <div className="text-2xl font-bold">{user.safeMails}</div>
                   <div className="text-sm text-muted-foreground">Safe Emails</div>
                 </div>
               </CardContent>
@@ -247,7 +275,7 @@ export default function ProfilePage() {
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <Shield className="h-8 w-8 text-secondary mx-auto" />
-                  <div className="text-2xl font-bold">{userData.streak}</div>
+                  <div className="text-2xl font-bold">{user.streak}</div>
                   <div className="text-sm text-muted-foreground">Day Streak</div>
                 </div>
               </CardContent>

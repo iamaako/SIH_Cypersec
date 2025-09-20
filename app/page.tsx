@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,8 +23,10 @@ import {
   Eye,
   NotepadText,
   SquarePen,
+  LogOut,
 } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Mock data for the feed
 const scamAlerts = [
@@ -79,6 +82,34 @@ const securityTips = [
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { user, loading, logout } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth')
+    }
+  }, [user, loading, router])
+
+  const handleLogout = async () => {
+    await logout()
+    router.push('/auth')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
@@ -137,19 +168,31 @@ export default function HomePage() {
               </Button>
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></div>
             </div>
-            <Avatar className="h-9 w-9 border-2 border-primary/20 hover:border-primary/40 transition-colors">
-              <AvatarImage src="/diverse-user-avatars.png" />
-              <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">JD</AvatarFallback>
-            </Avatar>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-9 w-9 border-2 border-primary/20 hover:border-primary/40 transition-colors">
+                <AvatarImage src="/diverse-user-avatars.png" />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                  {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <div className="flex">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-64 bg-card/80 backdrop-blur-xl border-r border-border/50 transform transition-all duration-300 ease-out md:relative md:translate-x-0 ${
-            sidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
-          }`}
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-card/80 backdrop-blur-xl border-r border-border/50 transform transition-all duration-300 ease-out md:relative md:translate-x-0 ${sidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
+            }`}
         >
           <div className="flex flex-col h-full pt-16 md:pt-0">
             <nav className="flex-1 px-4 py-6 space-y-2">
@@ -190,9 +233,9 @@ export default function HomePage() {
               <div className="bg-gradient-to-r from-accent/10 to-primary/10 rounded-xl p-3">
                 <div className="flex items-center gap-2 text-sm">
                   <Zap className="h-4 w-4 text-accent" />
-                  <span className="font-medium">Protection Active</span>
+                  <span className="font-medium">Welcome, {user.name.split(' ')[0]}!</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">127 threats blocked today</p>
+                <p className="text-xs text-muted-foreground mt-1">{user.totalAnalyses} analyses completed</p>
               </div>
             </div>
           </div>
